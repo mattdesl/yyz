@@ -21,7 +21,7 @@ node . sketches/Rings.js
 node . sketches/Random.js
 ```
 
-Once it's running, you can edit the code in the selected `sketches/*.js` file to see it evaluate at runtime. Hit `Cmd/Ctrl + S` to download a higher resolution output (saved to your Downloads folder).
+Once it's running, open [http://localhost:9966/](http://localhost:9966/), then you can edit the code in the selected `sketches/*.js` file to see it re-render. Hit `Cmd/Ctrl + S` to download a higher resolution output (saved to your Downloads folder).
 
 See [canvas-sketch](https://github.com/mattdesl/canvas-sketch) for a similar toolkit (without JSX/esbuild) that is much more complete.
 
