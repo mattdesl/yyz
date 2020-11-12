@@ -3,7 +3,7 @@
 Experimental generative art toolkit based on JSX and esbuild. *Currently just a proof of concept*! Don't rely on this for anything, but feel free to poke around and check out the code locally to test it.
 
 ```sh
-git clone
+git clone https://github.com/mattdesl/yyz.git
 
 cd yyz
 npm install
@@ -13,6 +13,9 @@ node . sketches/DotSin.js
 
 # or...
 node . sketches/RadialCircle.js
+
+# or...
+node . sketches/Rings.js
 
 # or...
 node . sketches/Random.js
@@ -116,6 +119,10 @@ export default (props, { width, height, playhead }) => {
   return <background fill="hsl(0, 0%, 95%)">{arcs}</background>;
 };
 ```
+
+## More
+
+This is very early stages, and might not go anywhere, or it might go somewhere. The main motivation here is modularization of generative art code, fast iterative development, and eventual GUI and "no-code" wrappers with color pickers, sliders, component wiring, etc.
 
 ## License
 
