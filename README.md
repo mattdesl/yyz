@@ -49,7 +49,7 @@ export default (props, { width, height, playhead }) => {
 };
 ```
 
-Currently only a few basic builtins are included: `arc`, `rect`, `background` (full-screen fill), `point`, `arcpath`, and `segment`. These will likely change.
+Currently only a few basic builtins are included: `arc`, `rect`, `background` (full-screen fill), `g` (group), `point`, `arcpath`, and `segment`. These will likely change.
 
 ## Randomness
 
