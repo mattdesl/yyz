@@ -51,6 +51,21 @@ export default (props, { width, height, playhead }) => {
 
 Currently only a few basic builtins are included: `arc`, `rect`, `background` (full-screen fill), `g` (group), `point`, `arcpath`, and `segment`. These will likely change.
 
+## Components
+
+You can define components just like in React et al, except the second argument is the "app state" i.e. width/height, current time in seconds, etc.
+
+```js
+const CenteredArc = (props, { width, height }) => {
+  // render something
+  return <arc {...props} x={width/2} y={height/2} />
+};
+
+export default () => {
+  return <CenteredArc fill='red' radius={5} />
+}
+```
+
 ## Randomness
 
 Each time you reload the page, you will get a fixed seeded randomness for the `yyz` random utility. See the `Random.js` sketch:
