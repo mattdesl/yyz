@@ -49,6 +49,8 @@ export default (props, { width, height, playhead }) => {
 };
 ```
 
+Currently only a few basic builtins are included: `arc`, `rect`, `background` (full-screen fill), `point`, `arcpath`, and `segment`. These will likely change.
+
 ## Randomness
 
 Each time you reload the page, you will get a fixed seeded randomness for the `yyz` random utility. See the `Random.js` sketch:
@@ -122,7 +124,7 @@ export default (props, { width, height, playhead }) => {
 
 ## More
 
-This is very early stages, and might not go anywhere, or it might go somewhere. The main motivation here is modularization of generative art code, fast iterative development, and eventual GUI and "no-code" wrappers with color pickers, sliders, component wiring, etc.
+This is very early stages, and might not go anywhere, or it might go somewhere. The main motivation here is modularization of generative art code, fast iterative development, agnostic render outputs (SVG, Canvas, WebGL, JSON, GLTF, etc), and eventual GUI and "no-code" wrappers with color pickers, sliders, component wiring, etc.
 
 ## License
 
