@@ -1,5 +1,6 @@
 const path = require("path");
 const URL = require("url");
+const esbuild = require("esbuild");
 const createBundler = require("./bundle");
 const createWatcher = require("./watch");
 const createServer = require("./server");
@@ -54,7 +55,7 @@ async function start(opts) {
   let timer = null;
   let timerDelay = 0;
 
-  const bundler = await createBundler();
+  const bundler = await createBundler(esbuild);
   bundler.setOptions({
     write: false,
     sketch,

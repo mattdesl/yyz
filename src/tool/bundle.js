@@ -1,19 +1,42 @@
-const esbuild = require("esbuild");
-const path = require("path");
 const prettyMs = require("pretty-ms");
 const isDev = true;
+const injectPath = require.resolve
+  ? require.resolve("../yyz/builtins.js")
+  : false;
 
-module.exports = async function createBundler() {
-  const service = await esbuild.startService();
+module.exports = async function createBundler(esbuild, serviceOpts = {}) {
+  const service = await esbuild.startService(serviceOpts);
+
   const plugin = createPlugin();
   let curOptions = {};
 
   return {
+    service,
     setOptions(opts) {
       Object.assign(curOptions, opts);
     },
+    async transform(code) {
+      const { src } = curOptions;
+      const start = Date.now();
+      const result = await service.transform(code, {
+        define: {
+          __YYZ_IS_DEV__: isDev,
+          __YYZ_SCRIPT_SRC__: JSON.stringify(src),
+        },
+        // inject: [injectPath],
+        sourcemap: "inline",
+        jsxFactory: "__yyz_node",
+        jsxFragment: "__yyz_fragment",
+        format: "iife",
+        loader: "jsx",
+        // plugins: [plugin],
+      });
+      const now = Date.now();
+      console.log(`Transformed in ${prettyMs(now - start)}`);
+      return result;
+    },
     async bundle() {
-      const { port, src, entry, outfile, outdir, write = true } = curOptions;
+      const { src, entry, outfile, outdir, write = true } = curOptions;
 
       const start = Date.now();
       const result = await service.build({
@@ -26,7 +49,7 @@ module.exports = async function createBundler() {
           __YYZ_SCRIPT_SRC__: JSON.stringify(src),
         },
         outdir,
-        inject: [path.resolve(__dirname, "../yyz/builtins.js")],
+        inject: [require.resolve("../yyz/builtins.js")],
         sourcemap: true,
         // globalName,
         jsxFactory: "__yyz_node",
