@@ -120,7 +120,7 @@ async function start(opts) {
     timer = setTimeout(rebuild, timerDelay);
   });
 
-  const uri = `http://localhost:/${server.port}/`;
+  const uri = `http://localhost:${server.port}/`;
   console.log(`\n  Server listening on:\n  ${chalk.green(chalk.bold(uri))}\n`);
 
   triggerReload();
