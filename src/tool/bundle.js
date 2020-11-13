@@ -55,7 +55,10 @@ module.exports = async function createBundler(esbuild, serviceOpts = {}) {
         jsxFactory: "__yyz_node",
         jsxFragment: "__yyz_fragment",
         format: "iife",
-        loader: { ".js": "jsx" },
+        loader: {
+          ".js": "jsx",
+          ".ts": "tsx",
+        },
         plugins: [plugin],
       });
       const now = Date.now();

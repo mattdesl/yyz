@@ -72,7 +72,9 @@ async function start(opts) {
       if (pathname === `/${src}`) {
         try {
           const result = await bundlePromise;
-          const file = result.outputFiles.find((f) => /\.js$/i.test(f.path));
+          const file = result.outputFiles.find((f) => {
+            return path.basename(f.path) === path.basename(src);
+          });
           if (result.errors) {
             res.type("js");
             res.status(200);
@@ -91,9 +93,9 @@ async function start(opts) {
       } else if (pathname === `/${src}.map`) {
         try {
           const result = await bundlePromise;
-          const file = result.outputFiles.find((f) =>
-            /\.js.map$/i.test(f.path)
-          );
+          const file = result.outputFiles.find((f) => {
+            return path.basename(f.path) === `${path.basename(src)}.map`;
+          });
           if (file) {
             res.set("Content-Type", "application/octet-stream");
             res.status(200);
