@@ -43,8 +43,6 @@ async function start(opts) {
   // let dist = opts.dist || "build";
   // if (!path.isAbsolute(dist)) dist = path.resolve(process.cwd(), dist);
 
-  // await mkdirp(dist);
-
   const entry = path.resolve(__dirname, "../index.js");
   const src = URL.parse(path.basename(sketch)).pathname;
   const outfile = null;

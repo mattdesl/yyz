@@ -1,7 +1,7 @@
 const maxstache = require("maxstache");
 const URL = require("url");
 const serveStatic = require("sirv");
-const liveReload = require("inject-lr-script");
+// const liveReload = require("inject-lr-script");
 const express = require("express");
 const path = require("path");
 const getPort = require("get-port");

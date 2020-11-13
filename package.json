@@ -13,43 +13,30 @@
     "url": "https://github.com/mattdesl"
   },
   "dependencies": {
-    "acorn": "^8.0.4",
-    "acorn-jsx": "^5.3.1",
     "canvas-sketch": "^0.7.4",
     "canvas-sketch-util": "^1.10.0",
     "chalk": "^4.1.0",
     "chokidar": "^3.4.3",
-    "clone-deep": "^4.0.1",
-    "debounce": "^1.2.0",
     "defined": "^1.0.0",
     "esbuild": "^0.8.6",
     "esbuild-wasm": "^0.8.5",
     "express": "^4.17.1",
     "get-port": "^5.1.1",
-    "inject-lr-script": "^2.2.0",
     "jsx-transpiler": "^0.1.4",
     "load-script": "^1.0.0",
     "maxstache": "^1.0.7",
     "minimist": "^1.2.5",
-    "mkdirp": "^1.0.4",
     "nice-color-palettes": "^3.0.0",
     "paper-colors": "^1.0.0",
     "path-browserify": "^1.0.1",
     "pretty-ms": "^7.0.1",
     "reload-css": "^1.0.2",
-    "require-path-relative": "^1.0.1",
     "sirv": "^1.0.7",
-    "skatejs-dom-diff": "^1.0.1",
     "url-join": "^4.0.1",
-    "virtual-dom": "^2.1.1",
     "ws": "^7.4.0"
   },
-  "devDependencies": {
-    "canvas-sketch-cli": "^1.11.9",
-    "parcel": "^1.12.4"
-  },
+  "devDependencies": {},
   "scripts": {
-    "compile": "npx esbuild sketches/Sketch.js --inject:src/builtins.js --sourcemap=inline --global-name=Sketch --bundle --jsx-factory=__yyz_node --jsx-fragment=__yyz_fragment --format=esm --loader:.js=jsx --outfile=build/lines.js"
   },
   "keywords": [],
   "repository": {
