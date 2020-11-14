@@ -6,6 +6,8 @@ export const settings = {
   pixelsPerInch: 300,
 };
 
+const ArcPath = (props) => {};
+
 export default (props, { width, height, playhead }) => {
   const count = 10;
   const arcs = math.linspace(count).map((t) => {

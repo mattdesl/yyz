@@ -85,6 +85,16 @@ export default {
     this.arc(props, { ...node, fill, stroke: false, x, y, radius });
   },
 
+  path(props, node) {
+    const { context } = props;
+    const { points = [], stroke = true, closed = false } = node;
+    if (points.length === 0) return;
+    context.beginPath();
+    points.forEach((p) => context.lineTo(p[0], p[1]));
+    if (closed) context.closePath();
+    this.paint(props, { fill: false, stroke: true, ...node });
+  },
+
   arc(props, node) {
     const { context } = props;
     const {

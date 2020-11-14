@@ -19,6 +19,14 @@ const sketch = (props) => {
   const state = getProps(props);
   const renderer = createCanvasRenderer(state);
   let main = props.data;
+  const visitor = {
+    enter(state, node) {
+      renderer.enter(state, node);
+    },
+    exit(state, node) {
+      renderer.exit(state, node);
+    },
+  };
 
   return {
     render(props) {
@@ -38,14 +46,7 @@ const sketch = (props) => {
 
       if (tree) {
         try {
-          traverse(state, tree, {
-            enter(state, node) {
-              renderer.enter(state, node);
-            },
-            exit(state, node) {
-              renderer.exit(state, node);
-            },
-          });
+          traverse(state, tree, visitor);
         } catch (err) {
           console.error(err);
         }
@@ -95,6 +96,7 @@ function getProps(props) {
     playhead,
     duration,
     frame,
+    totalFrames,
     deltaTime,
   } = props;
   return {
@@ -105,6 +107,7 @@ function getProps(props) {
     playhead,
     duration,
     frame,
+    totalFrames,
     deltaTime,
   };
 }
@@ -132,6 +135,7 @@ function createCanvasRenderer(state) {
   map.set("circle", (state, props) => CanvasUtil.arc(state, props));
   map.set("segment", (state, props) => CanvasUtil.segment(state, props));
   map.set("arcpath", (state, props) => CanvasUtil.arcpath(state, props));
+  map.set("path", (state, props) => CanvasUtil.path(state, props));
 
   const resolveProps = (node) => {
     const defaults = Object.fromEntries(node.defaults);

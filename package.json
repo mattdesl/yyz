@@ -29,15 +29,19 @@
     "nice-color-palettes": "^3.0.0",
     "paper-colors": "^1.0.0",
     "path-browserify": "^1.0.1",
+    "perspective-camera": "^2.0.1",
     "pretty-ms": "^7.0.1",
+    "primitive-icosphere": "^1.0.2",
+    "primitive-torus": "^1.0.4",
     "reload-css": "^1.0.2",
     "sirv": "^1.0.7",
+    "snowden": "^1.0.1",
+    "teapot": "^1.0.0",
     "url-join": "^4.0.1",
     "ws": "^7.4.0"
   },
   "devDependencies": {},
-  "scripts": {
-  },
+  "scripts": {},
   "keywords": [],
   "repository": {
     "type": "git",
