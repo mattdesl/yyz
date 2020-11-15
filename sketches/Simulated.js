@@ -2,11 +2,11 @@ import { math, random as PureRandom } from "yyz";
 import { vec2 } from "gl-matrix";
 
 export const settings = {
-  dimensions: [1080, 960],
+  dimensions: [2048, 2048],
   // pixelsPerInch: 150,
   // orientation: "landscape",
   animate: true,
-  duration: 4,
+  duration: 2,
   loop: false,
 };
 

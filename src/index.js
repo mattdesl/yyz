@@ -10,11 +10,11 @@ const USE_GIF = false;
 
 const defaultSettings = {
   dimensions: [1024, 1024],
+  scaleToView: false,
 };
 
 if (USE_GIF) {
   Object.assign(defaultSettings, {
-    scaleToView: true,
     fps: 25,
     playbackRate: "throttle",
   });
