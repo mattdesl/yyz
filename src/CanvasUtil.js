@@ -40,6 +40,63 @@ export default {
     }
   },
 
+  text(props, node) {
+    const { context } = props;
+    const { x = 0, y = 0, children = [], maxWidth = undefined } = node;
+    const text = children
+      .filter((child) => child.type === "textnode")
+      .map((child) => child.props.value)
+      .join("");
+
+    if (text.trim() === "") return;
+
+    const fontFamily = node.fontFamily || "monospace";
+    let fontSize = node.fontSize || "16px";
+    if (typeof fontSize === "number") {
+      fontSize = `${fontSize}px`;
+    }
+    const fontStyle = node.fontStyle || "normal";
+
+    context.font = [fontStyle, fontSize, fontFamily].join(" ");
+    context.textAlign = node.align || "center";
+    context.textBaseline = node.baseline || "middle";
+
+    let hasFill = false,
+      hasStroke = false;
+    const fill = node.fill === "none" ? false : node.fill;
+    const stroke = node.stroke === "none" ? false : node.stroke;
+    if (fill == null && stroke == null) {
+      hasFill = true;
+    } else {
+      hasFill = fill && fill != null;
+      hasStroke = stroke && stroke != null;
+    }
+    if (
+      node.alpha != null &&
+      isFinite(node.alpha) &&
+      typeof node.alpha === "number"
+    ) {
+      context.globalAlpha = node.alpha;
+    } else {
+      context.globalAlpha = 1;
+    }
+    if (hasFill) {
+      context.fillStyle = typeof fill === "string" && fill ? fill : "black";
+      context.fillText(text, x, y, maxWidth);
+    }
+    if (hasStroke) {
+      context.strokeStyle =
+        typeof stroke === "string" && stroke ? stroke : "black";
+      const lineWidth = defined(node.lineWidth, 1);
+      if (lineWidth > 0) {
+        context.lineWidth = lineWidth;
+        context.lineJoin = defined(node.lineJoin, "miter");
+        context.lineCap = defined(node.lineCap, "butt");
+        context.strokeText(text, x, y, maxWidth);
+      }
+    }
+  },
+
   segment(props, node) {
     const { context } = props;
     const { x = 0, y = 0, length = 1, angle = 0 } = node;

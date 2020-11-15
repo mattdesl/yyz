@@ -20,6 +20,13 @@ export default function createNode(type, props, ...children) {
   children = children || [];
   if (!Array.isArray(children)) children = [children].filter(Boolean);
   children = children.flat(Infinity);
+  children = children.map((child) => {
+    if (typeof child === "string" || typeof child === "number") {
+      return createNode("textnode", { value: child });
+    } else {
+      return child;
+    }
+  });
   if (typeof type === "string") {
     type = type.toLowerCase();
   }

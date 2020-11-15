@@ -183,6 +183,7 @@ function createCanvasRenderer(state) {
   map.set("segment", (state, props) => CanvasUtil.segment(state, props));
   map.set("arcpath", (state, props) => CanvasUtil.arcpath(state, props));
   map.set("path", (state, props) => CanvasUtil.path(state, props));
+  map.set("text", (state, props) => CanvasUtil.text(state, props));
 
   const resolveProps = (node) => {
     const defaults = Object.fromEntries(node.defaults);
@@ -244,6 +245,10 @@ function traverse(state, nodes, visitor, cache, parent = null) {
   nodes = (Array.isArray(nodes) ? nodes : [nodes]).filter(Boolean);
   const ids = new Map();
   nodes.forEach((node) => {
+    // what to do with text nodes?
+    // should handle them with a function/symbol rather than string..
+    if (node.type === "textnode") return;
+
     const isFragment = node.type === "fragment";
     node.data = node.data || new Map(parent ? parent.data : []);
     node.defaults = node.defaults || new Map(parent ? parent.defaults : []);
