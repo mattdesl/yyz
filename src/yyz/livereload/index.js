@@ -35,7 +35,7 @@ export default function livereload_dev() {
 
   function reload() {
     const src = __YYZ_SCRIPT_SRC__ + "?bust=" + Date.now();
-    console.clear();
+    // console.clear();
     loadJS(src);
   }
 

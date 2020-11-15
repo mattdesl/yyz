@@ -5,11 +5,20 @@ import createNode from "./yyz/node";
 import { random } from "yyz";
 import Sketch, * as config from "yyz/sketch";
 
+// Will have to work on this a bit more...
+const USE_GIF = false;
+
 const defaultSettings = {
   dimensions: [1024, 1024],
-  scaleToView: true,
-  duration: 5,
 };
+
+if (USE_GIF) {
+  Object.assign(defaultSettings, {
+    scaleToView: true,
+    fps: 25,
+    playbackRate: "throttle",
+  });
+}
 
 function get_config(key) {
   return typeof config[key] === "undefined" ? undefined : config[key];
@@ -20,7 +29,7 @@ const sketch = (props) => {
   const renderer = createCanvasRenderer(state);
   let main = props.data;
   const visitor = {
-    enter(state, node) {
+    enter(state, node, key) {
       renderer.enter(state, node);
     },
     exit(state, node) {
@@ -28,33 +37,65 @@ const sketch = (props) => {
     },
   };
 
+  const cache = new Map();
+
+  if (USE_GIF) {
+    const gif = new GIF({
+      // width: props.width,
+      // height: props.height,
+      workerScript: "vendor/gif.worker.js",
+      workers: 2,
+      debug: true,
+      background: "#000",
+      quality: 50,
+    });
+
+    let fpsInterval = 1 / props.fps;
+    for (let i = 0; i < props.totalFrames; i++) {
+      draw({
+        ...props,
+        deltaTime: i === 0 ? 0 : fpsInterval,
+        playhead: i / props.totalFrames,
+        frame: i,
+        time: i * fpsInterval,
+      });
+      gif.addFrame(props.canvas, { copy: true, delay: 1 / fpsInterval });
+    }
+    gif.on("finished", function (blob) {
+      window.open(URL.createObjectURL(blob));
+    });
+    gif.render();
+  }
+
   return {
-    render(props) {
-      const state = getProps(props);
-      random.setSeed(window.seed);
-
-      let tree;
-      let curMain = get_config("main") || main;
-      if (typeof curMain === "function") {
-        tree = createNode(curMain, {});
-      } else {
-        tree = curMain;
-      }
-
-      renderer.step(state);
-      renderer.begin(state);
-
-      if (tree) {
-        try {
-          traverse(state, tree, visitor);
-        } catch (err) {
-          console.error(err);
-        }
-      }
-
-      renderer.end(state);
-    },
+    render: draw,
   };
+
+  function draw(props) {
+    const state = getProps(props);
+    random.setSeed(window.seed);
+
+    let tree;
+    let curMain = get_config("main") || main;
+    if (typeof curMain === "function") {
+      tree = createNode(curMain, {});
+    } else {
+      tree = curMain;
+    }
+
+    renderer.step(state);
+    renderer.begin(state);
+
+    if (tree) {
+      try {
+        traverse(state, tree, visitor, cache);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    renderer.end(state);
+  }
 };
 
 livereload();
@@ -65,11 +106,17 @@ livereload();
     ...(get_config("settings") || {}),
   };
 
+  if (!("duration" in settings) && !("totalFrames" in settings)) {
+    settings.duration = 5;
+  }
+
   if (window.manager) {
+    if (USE_GIF) window.location.reload();
     const manager = await window.manager;
-    const newProps = settings.animate
-      ? { time: manager.props.time }
-      : undefined;
+    const newProps =
+      settings.animate && settings.loop !== false
+        ? { time: manager.props.time }
+        : undefined;
     manager.destroy();
     create(newProps);
   } else {
@@ -192,24 +239,53 @@ function createCanvasRenderer(state) {
   };
 }
 
-function traverse(state, nodes, visitor, parent = null) {
+function traverse(state, nodes, visitor, cache, parent = null) {
   if (!nodes) return;
   nodes = (Array.isArray(nodes) ? nodes : [nodes]).filter(Boolean);
+  const ids = new Map();
   nodes.forEach((node) => {
     const isFragment = node.type === "fragment";
     node.data = node.data || new Map(parent ? parent.data : []);
     node.defaults = node.defaults || new Map(parent ? parent.defaults : []);
-
+    let k = node.key;
+    if (!k) {
+      let count = 0;
+      if (ids.has(node.type)) {
+        count = ids.get(node.type);
+      }
+      const pkey = parent ? `${parent.key}-` : "~";
+      k = `${pkey}${node.name}${count}`;
+      ids.set(node.type, count + 1);
+    }
+    node.key = k;
     if (typeof node.type === "function") {
-      const instance = node.type(
-        { ...node.props, defaults: node.defaults, data: node.data },
-        state
-      );
-      traverse(state, instance, visitor, node);
+      const newProps = {
+        ...node.props,
+        defaults: node.defaults,
+        data: node.data,
+      };
+
+      let instance;
+      // if key is in cache, it's stateful
+      if (cache.has(node.key)) {
+        const fn = cache.get(node.key);
+        instance = fn(newProps, state);
+      } else {
+        const fn = node.type(newProps, state);
+        if (typeof fn === "function") {
+          // stateful
+          cache.set(node.key, fn);
+          instance = fn(newProps, state);
+        } else {
+          // not stateful
+          instance = fn;
+        }
+      }
+      traverse(state, instance, visitor, cache, node);
     } else {
       if (!isFragment) visitor.enter(state, node);
       if (node && node.children && node.children.length) {
-        traverse(state, node.children, visitor, node);
+        traverse(state, node.children, visitor, cache, node);
       }
       if (!isFragment) visitor.exit(state, node);
     }

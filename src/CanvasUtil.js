@@ -79,8 +79,13 @@ export default {
   },
 
   point(props, node) {
-    const { context } = props;
-    const { x = 0, y = 0, radius = 5, fill = true } = node;
+    const { context, width, height } = props;
+    const { x = 0, y = 0, fill = true } = node;
+    let radius = node.radius;
+    if (radius == null) {
+      // what is a reasonable default? maybe point should not even exist...
+      radius = (5 / 1024) * Math.min(width, height);
+    }
     if (radius === 0) return;
     this.arc(props, { ...node, fill, stroke: false, x, y, radius });
   },

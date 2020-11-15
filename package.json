@@ -22,6 +22,7 @@
     "esbuild-wasm": "^0.8.5",
     "express": "^4.17.1",
     "get-port": "^5.1.1",
+    "gl-matrix": "^3.3.0",
     "jsx-transpiler": "^0.1.4",
     "load-script": "^1.0.0",
     "maxstache": "^1.0.7",
