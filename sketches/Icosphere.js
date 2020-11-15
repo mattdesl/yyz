@@ -39,10 +39,12 @@ export default function MovingCircle(props, { width, height, playhead }) {
     });
 
     // get elements for each vertex
+    // we draw points/circles here
     const vertices = positions.map((p) => (
       <point x={p[0]} y={p[1]} fill="white" />
     ));
 
+    // turn each cell of the mesh into a triangle path
     const cells = icosphere.cells.map((cell) => {
       const points = cell.map((i) => positions[i]);
       return (
@@ -55,6 +57,7 @@ export default function MovingCircle(props, { width, height, playhead }) {
       );
     });
 
+    // layer up the final graphics
     return (
       <background fill="black">
         {cells}
