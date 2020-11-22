@@ -28,14 +28,7 @@ const sketch = (props) => {
   const state = getProps(props);
   const renderer = createCanvasRenderer(state);
   let main = props.data;
-  const visitor = {
-    enter(state, node, key) {
-      renderer.enter(state, node);
-    },
-    exit(state, node) {
-      renderer.exit(state, node);
-    },
-  };
+  const visitor = renderer;
 
   const cache = new Map();
 
@@ -155,7 +148,7 @@ function getProps(props) {
     duration,
     frame,
     totalFrames,
-    deltaTime,
+    deltaTime: deltaTime || 0,
   };
 }
 
@@ -197,17 +190,26 @@ function createCanvasRenderer(state) {
   };
 
   return {
+    initial: false,
+
+    clear(state) {
+      CanvasUtil.background(state, { fill: "white", clear: true });
+    },
+
     step(state) {},
 
     begin({ context, width, height }) {
       context.save();
-      context.clearRect(0, 0, width, height);
-      context.fillStyle = "white";
-      context.fillRect(0, 0, width, height);
-      context.fillStyle = "black";
+      this.initial = true;
     },
 
     enter(state, node) {
+      if (this.initial) {
+        if (node.type !== "background") {
+          this.clear(state);
+        }
+        this.initial = false;
+      }
       if (map.has(node.type)) {
         const r = map.get(node.type);
         if (r) {
@@ -288,11 +290,15 @@ function traverse(state, nodes, visitor, cache, parent = null) {
       }
       traverse(state, instance, visitor, cache, node);
     } else {
-      if (!isFragment) visitor.enter(state, node);
+      if (!isFragment) {
+        visitor.enter(state, node);
+      }
       if (node && node.children && node.children.length) {
         traverse(state, node.children, visitor, cache, node);
       }
-      if (!isFragment) visitor.exit(state, node);
+      if (!isFragment) {
+        visitor.exit(state, node);
+      }
     }
   });
 }

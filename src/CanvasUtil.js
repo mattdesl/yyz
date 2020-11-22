@@ -43,6 +43,7 @@ export default {
   text(props, node) {
     const { context } = props;
     const { x = 0, y = 0, children = [], maxWidth = undefined } = node;
+    if (node.stroke === false && node.fill === false) return;
     const text = children
       .filter((child) => child.type === "textnode")
       .map((child) => child.props.value)
@@ -100,6 +101,7 @@ export default {
   segment(props, node) {
     const { context } = props;
     const { x = 0, y = 0, length = 1, angle = 0 } = node;
+    if (node.stroke === false && node.fill === false) return;
     const len = length / 2;
     const u = Math.cos(angle) * len;
     const v = Math.sin(angle) * len;
@@ -120,6 +122,7 @@ export default {
   rect(props, node) {
     const { context } = props;
     const { x = 0, y = 0, width = 1, height = 1 } = node;
+    if (node.stroke === false && node.fill === false) return;
     context.beginPath();
     context.rect(x, y, width, height);
     this.paint(props, node);
@@ -127,17 +130,23 @@ export default {
 
   background(props, node) {
     const { context, width, height } = props;
-    const { fill = "white" } = node;
-    this.rect(props, {
-      width,
-      height,
-    });
-    this.paint(props, { ...node, fill });
+    const { clear = false, fill = "white" } = node;
+    if (clear) {
+      context.clearRect(0, 0, width, height);
+    }
+    if (fill) {
+      this.rect(props, {
+        width,
+        height,
+      });
+      this.paint(props, { ...node, fill });
+    }
   },
 
   point(props, node) {
     const { context, width, height } = props;
     const { x = 0, y = 0, fill = true } = node;
+    if (node.stroke === false && node.fill === false) return;
     let radius = node.radius;
     if (radius == null) {
       // what is a reasonable default? maybe point should not even exist...
@@ -151,6 +160,7 @@ export default {
     const { context } = props;
     const { points = [], stroke = true, closed = false } = node;
     if (points.length === 0) return;
+    if (stroke === false && node.fill === false) return;
     context.beginPath();
     points.forEach((p) => context.lineTo(p[0], p[1]));
     if (closed) context.closePath();
@@ -167,6 +177,7 @@ export default {
       end = Math.PI * 2,
       counterClockwise = false,
     } = node;
+    if (node.stroke === false && node.fill === false) return;
     context.beginPath();
     context.arc(x, y, radius, start, end, counterClockwise);
     this.paint(props, node);

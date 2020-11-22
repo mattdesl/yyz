@@ -18,8 +18,8 @@
     "chalk": "^4.1.0",
     "chokidar": "^3.4.3",
     "defined": "^1.0.0",
-    "esbuild": "^0.8.6",
-    "esbuild-wasm": "^0.8.5",
+    "esbuild": "^0.8.12",
+    "esbuild-wasm": "^0.8.12",
     "express": "^4.17.1",
     "get-port": "^5.1.1",
     "gl-matrix": "^3.3.0",
@@ -41,7 +41,9 @@
     "url-join": "^4.0.1",
     "ws": "^7.4.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "three": "^0.122.0"
+  },
   "scripts": {},
   "keywords": [],
   "repository": {

@@ -9,6 +9,8 @@ module.exports = async function createBundler(esbuild, serviceOpts = {}) {
 
   const plugin = createPlugin();
   let curOptions = {};
+  let instance;
+  let useIncremental = true;
 
   return {
     service,
@@ -39,33 +41,48 @@ module.exports = async function createBundler(esbuild, serviceOpts = {}) {
       const { src, entry, outfile, outdir, write = true } = curOptions;
 
       const start = Date.now();
-      const result = await service.build({
-        entryPoints: [].concat(entry).filter(Boolean),
-        bundle: true,
-        outfile,
-        write,
-        define: {
-          __YYZ_IS_DEV__: isDev,
-          __YYZ_SCRIPT_SRC__: JSON.stringify(src),
-        },
-        outdir,
-        inject: [require.resolve("../yyz/builtins.js")],
-        sourcemap: true,
-        // globalName,
-        jsxFactory: "__yyz_node",
-        jsxFragment: "__yyz_fragment",
-        format: "iife",
-        loader: {
-          ".js": "jsx",
-          ".ts": "tsx",
-        },
-        plugins: [plugin],
-      });
+      let result;
+      if (instance) {
+        result = instance.rebuild();
+      } else {
+        result = await service.build({
+          entryPoints: [].concat(entry).filter(Boolean),
+          bundle: true,
+          outfile,
+          write,
+          define: {
+            __YYZ_IS_DEV__: isDev,
+            __YYZ_SCRIPT_SRC__: JSON.stringify(src),
+          },
+          outdir,
+          incremental: useIncremental,
+          inject: [require.resolve("../yyz/builtins.js")],
+          sourcemap: false,
+          // globalName,
+          jsxFactory: "__yyz_node",
+          jsxFragment: "__yyz_fragment",
+          format: "iife",
+          loader: {
+            ".js": "jsx",
+            ".ts": "tsx",
+          },
+          plugins: [plugin],
+        });
+        if (useIncremental) instance = result;
+      }
+      await result;
       const now = Date.now();
       console.log(`Bundled in ${prettyMs(now - start)}`);
       return result;
     },
+    reset() {
+      if (instance) {
+        instance.rebuild.dispose();
+        instance = null;
+      }
+    },
     dispose() {
+      this.reset();
       service.stop();
     },
   };
