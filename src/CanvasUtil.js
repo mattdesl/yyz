@@ -130,16 +130,19 @@ export default {
 
   background(props, node) {
     const { context, width, height } = props;
-    const { clear = false, fill = "white" } = node;
+    const { clear = true, fill = "white", x = 0, y = 0 } = node;
+    const cwidth = node.width != null ? node.width : width;
+    const cheight = node.height != null ? node.height : height;
     if (clear) {
       context.clearRect(0, 0, width, height);
     }
     if (fill) {
-      this.rect(props, {
-        width,
-        height,
+      context.beginPath();
+      context.rect(x, y, cwidth, cheight);
+      this.paint(props, {
+        ...node,
+        fill,
       });
-      this.paint(props, { ...node, fill });
     }
   },
 

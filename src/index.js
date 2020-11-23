@@ -4,6 +4,10 @@ import livereload from "yyz/livereload";
 import createNode from "./yyz/node";
 import { random } from "yyz";
 import Sketch, * as config from "yyz/sketch";
+import { GUI } from "dat.gui";
+import * as Color from "canvas-sketch-util/color";
+
+const GeneratorFunction = function* () {}.constructor;
 
 // Will have to work on this a bit more...
 const USE_GIF = false;
@@ -27,42 +31,52 @@ function get_config(key) {
 const sketch = (props) => {
   const state = getProps(props);
   const renderer = createCanvasRenderer(state);
-  let main = props.data;
-  const visitor = renderer;
+  let { main, clear } = props.data;
+  let didError = false;
 
-  const cache = new Map();
+  let reconciler;
 
-  if (USE_GIF) {
-    const gif = new GIF({
-      // width: props.width,
-      // height: props.height,
-      workerScript: "vendor/gif.worker.js",
-      workers: 2,
-      debug: true,
-      background: "#000",
-      quality: 50,
-    });
+  // if (USE_GIF) {
+  //   const gif = new GIF({
+  //     // width: props.width,
+  //     // height: props.height,
+  //     workerScript: "vendor/gif.worker.js",
+  //     workers: 2,
+  //     debug: true,
+  //     background: "#000",
+  //     quality: 50,
+  //   });
 
-    let fpsInterval = 1 / props.fps;
-    for (let i = 0; i < props.totalFrames; i++) {
-      draw({
-        ...props,
-        deltaTime: i === 0 ? 0 : fpsInterval,
-        playhead: i / props.totalFrames,
-        frame: i,
-        time: i * fpsInterval,
-      });
-      gif.addFrame(props.canvas, { copy: true, delay: 1 / fpsInterval });
-    }
-    gif.on("finished", function (blob) {
-      window.open(URL.createObjectURL(blob));
-    });
-    gif.render();
-  }
+  //   let fpsInterval = 1 / props.fps;
+  //   for (let i = 0; i < props.totalFrames; i++) {
+  //     draw({
+  //       ...props,
+  //       deltaTime: i === 0 ? 0 : fpsInterval,
+  //       playhead: i / props.totalFrames,
+  //       frame: i,
+  //       time: i * fpsInterval,
+  //     });
+  //     gif.addFrame(props.canvas, { copy: true, delay: 1 / fpsInterval });
+  //   }
+  //   gif.on("finished", function (blob) {
+  //     window.open(URL.createObjectURL(blob));
+  //   });
+  //   gif.render();
+  // }
 
   return {
+    begin() {
+      dispose();
+      reconciler = createTraverse(props);
+    },
+    unload: dispose,
     render: draw,
   };
+
+  function dispose() {
+    if (reconciler) reconciler.dispose();
+    reconciler = null;
+  }
 
   function draw(props) {
     const state = getProps(props);
@@ -78,12 +92,18 @@ const sketch = (props) => {
 
     renderer.step(state);
     renderer.begin(state);
+    if (clear) {
+      renderer.clear(state);
+    }
 
-    if (tree) {
-      try {
-        traverse(state, tree, visitor, cache);
-      } catch (err) {
-        console.error(err);
+    if (!didError) {
+      if (tree) {
+        try {
+          reconciler.traverse(state, tree, renderer);
+        } catch (err) {
+          didError = true;
+          console.error(err);
+        }
       }
     }
 
@@ -99,6 +119,11 @@ livereload();
     ...(get_config("settings") || {}),
   };
 
+  const clear = settings.clear !== false;
+  const restart = settings.restart !== false;
+  delete settings.clear;
+  delete settings.restart;
+
   if (!("duration" in settings) && !("totalFrames" in settings)) {
     settings.duration = 5;
   }
@@ -107,7 +132,7 @@ livereload();
     if (USE_GIF) window.location.reload();
     const manager = await window.manager;
     const newProps =
-      settings.animate && settings.loop !== false
+      settings.animate && settings.loop !== false && !restart
         ? { time: manager.props.time }
         : undefined;
     manager.destroy();
@@ -121,7 +146,11 @@ livereload();
     window.manager = canvasSketch(sketch, {
       ...settings,
       ...newProps,
-      data: Sketch,
+      data: {
+        main: Sketch,
+        restart,
+        clear,
+      },
     });
     return window.manager;
   }
@@ -190,26 +219,18 @@ function createCanvasRenderer(state) {
   };
 
   return {
-    initial: false,
-
     clear(state) {
       CanvasUtil.background(state, { fill: "white", clear: true });
     },
 
     step(state) {},
 
-    begin({ context, width, height }) {
+    begin(state) {
+      const { context, width, height } = state;
       context.save();
-      this.initial = true;
     },
 
     enter(state, node) {
-      if (this.initial) {
-        if (node.type !== "background") {
-          this.clear(state);
-        }
-        this.initial = false;
-      }
       if (map.has(node.type)) {
         const r = map.get(node.type);
         if (r) {
@@ -242,65 +263,175 @@ function createCanvasRenderer(state) {
   };
 }
 
-function traverse(state, nodes, visitor, cache, parent = null) {
-  if (!nodes) return;
-  nodes = (Array.isArray(nodes) ? nodes : [nodes]).filter(Boolean);
-  const ids = new Map();
-  nodes.forEach((node) => {
-    // what to do with text nodes?
-    // should handle them with a function/symbol rather than string..
-    if (node.type === "textnode") return;
+function createTraverse(props) {
+  const cache = new Map();
+  const configMap = new Map();
+  const gui = new GUI();
+  const symbolConfig = Symbol.for("yyz.config");
+  const symbolNode = Symbol.for("yyz.node");
+  const buttons = {
+    restart() {
+      props.stop();
+      props.play();
+    },
+  };
+  gui.add(buttons, "restart").name("Restart");
 
-    const isFragment = node.type === "fragment";
-    node.data = node.data || new Map(parent ? parent.data : []);
-    node.defaults = node.defaults || new Map(parent ? parent.defaults : []);
-    let k = node.key;
-    if (!k) {
-      let count = 0;
-      if (ids.has(node.type)) {
-        count = ids.get(node.type);
+  return {
+    dispose() {
+      gui.destroy();
+    },
+    traverse(state, nodes, renderer) {
+      return traverse(state, nodes, renderer, null);
+    },
+  };
+
+  function execute(fn, props, state) {
+    if (typeof fn === "function") return fn(props, state);
+    else if (fn && fn.render) return fn.render(props, state);
+    return null;
+  }
+
+  function traverse(state, nodes, visitor, parent = null) {
+    if (!nodes) return;
+    nodes = (Array.isArray(nodes) ? nodes : [nodes]).filter(Boolean).flat();
+    const ids = new Map();
+    nodes.forEach((node) => {
+      // what to do with text nodes?
+      // should handle them with a function/symbol rather than string..
+      if (node.type === "textnode") return;
+
+      const isFragment = node.type === "fragment";
+      node.data = node.data || new Map(parent ? parent.data : []);
+      node.defaults = node.defaults || new Map(parent ? parent.defaults : []);
+      let k = node.key;
+      if (!k) {
+        let count = 0;
+        if (ids.has(node.type)) {
+          count = ids.get(node.type);
+        }
+        const pkey = parent ? `${parent.key}-` : "";
+        k = `${pkey}${node.name}${count}`;
+        ids.set(node.type, count + 1);
       }
-      const pkey = parent ? `${parent.key}-` : "~";
-      k = `${pkey}${node.name}${count}`;
-      ids.set(node.type, count + 1);
-    }
-    node.key = k;
-    if (typeof node.type === "function") {
-      const newProps = {
-        ...node.props,
-        defaults: node.defaults,
-        data: node.data,
-      };
+      node.key = k;
+      if (typeof node.type === "function") {
+        let configProps = {};
+        if (configMap.has(node.key)) {
+          configProps = configMap.get(node.key).target;
+        }
+        const newProps = {
+          ...node.props,
+          ...configProps,
+          defaults: node.defaults,
+          data: node.data,
+        };
 
-      let instance;
-      // if key is in cache, it's stateful
-      if (cache.has(node.key)) {
-        const fn = cache.get(node.key);
-        instance = fn(newProps, state);
-      } else {
-        const fn = node.type(newProps, state);
-        if (typeof fn === "function") {
-          // stateful
-          cache.set(node.key, fn);
-          instance = fn(newProps, state);
+        let instance;
+        // if key is in cache, it's stateful
+        if (cache.has(node.key)) {
+          const fn = cache.get(node.key);
+          instance = execute(fn, newProps, state);
         } else {
-          // not stateful
-          instance = fn;
+          if (node.type.config) {
+            if (configMap.has(node.key)) {
+            } else {
+              const target = {};
+              const folder = gui.addFolder(node.key);
+              const fromStorageStr = window.localStorage.getItem(node.key);
+              let fromStorage = {};
+              if (fromStorageStr != null) {
+                try {
+                  fromStorage = JSON.parse(fromStorageStr);
+                } catch (err) {
+                  console.warn(err);
+                }
+              }
+
+              for (let k in node.type.config) {
+                const v = node.type.config[k];
+                if (v.$$typeof === symbolConfig) {
+                  target[k] =
+                    k in fromStorage
+                      ? fromStorage[k]
+                      : node.type.config[k].default;
+
+                  if (v.type === "color") {
+                    const p = Color.parse(target[k]);
+                    if (!p) console.warn(`Could not parse ${k} as a color`);
+                    else target[k] = p.hex;
+                  }
+
+                  let ui;
+                  if (v.type === "color") ui = folder.addColor(target, k);
+                  else {
+                    ui = folder
+                      .add(target, k, v.min, v.max, v.step)
+                      .step(v.step);
+                  }
+                  ui.onChange(() => {
+                    window.localStorage.setItem(
+                      node.key,
+                      JSON.stringify(target)
+                    );
+                  });
+                } else {
+                  target[k] = v;
+                }
+              }
+              folder.open();
+              Object.assign(newProps, target);
+              configMap.set(node.key, {
+                target,
+                folder,
+                type: node.type,
+                key: node.key,
+              });
+            }
+          }
+
+          let fn = node.type(newProps, state);
+
+          const isNode =
+            (fn &&
+              typeof fn === "object" &&
+              fn.$$typeof &&
+              fn.$$typeof === symbolNode) ||
+            Array.isArray(fn);
+
+          if (!isNode && fn) {
+            cache.set(node.key, fn);
+            instance = execute(fn, newProps, state);
+          } else if (fn) {
+            // not stateful
+            instance = fn;
+          }
+
+          if (node.type.once === true) {
+            cache.set(node.key, ({ children }) =>
+              createNode("fragment", {}, children)
+            );
+          }
+        }
+        traverse(state, instance, visitor, node);
+      } else {
+        let nodeWithProps = node;
+        if (!isFragment) {
+          visitor.enter(state, nodeWithProps);
+        }
+        if (
+          nodeWithProps &&
+          nodeWithProps.children &&
+          nodeWithProps.children.length
+        ) {
+          traverse(state, nodeWithProps.children, visitor, nodeWithProps);
+        }
+        if (!isFragment) {
+          visitor.exit(state, nodeWithProps);
         }
       }
-      traverse(state, instance, visitor, cache, node);
-    } else {
-      if (!isFragment) {
-        visitor.enter(state, node);
-      }
-      if (node && node.children && node.children.length) {
-        traverse(state, node.children, visitor, cache, node);
-      }
-      if (!isFragment) {
-        visitor.exit(state, node);
-      }
-    }
-  });
+    });
+  }
 }
 
 // function Line({ position = [0, 0], length = 1, angle = 0 } = {}) {

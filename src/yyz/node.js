@@ -1,3 +1,8 @@
+const symbol = Symbol.for("yyz.node");
+
+export function TextNode() {}
+export function FragmentNode() {}
+
 class Node {
   constructor(type, props, children) {
     this.type = type || "";
@@ -5,6 +10,7 @@ class Node {
     this.children = children || [];
     this.name =
       typeof this.type === "function" ? this.type.name : String(this.type);
+    this.$$typeof = symbol;
   }
 
   clone(props) {

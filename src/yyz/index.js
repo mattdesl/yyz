@@ -1,8 +1,10 @@
 import * as MathUtil from "canvas-sketch-util/math";
 import * as Random from "canvas-sketch-util/random";
+import * as Config from "./config";
 
 export const math = MathUtil;
 export const random = Random;
+export const config = Config;
 
 math.map = math.mapRange;
 math.range = range;
