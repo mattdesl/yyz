@@ -159,6 +159,41 @@ export default {
     this.arc(props, { ...node, fill, stroke: false, x, y, radius });
   },
 
+  points (props, node) {
+    const { context, width, height } = props;
+    const { data = [], x = 0, y = 0, fill = true } = node;
+    if (data.length === 0) return;
+    if (node.stroke === false && node.fill === false) return;
+    let radius = node.radius;
+    if (radius == null) {
+      // what is a reasonable default? maybe point should not even exist...
+      radius = (5 / 1024) * Math.min(width, height);
+    }
+    if (radius === 0) return;
+    context.translate(x, y);
+    context.beginPath();
+    
+
+    const angle = Math.PI;
+    const needsFix = true; // could turn this off for fill-only ?
+    const tx = needsFix ? Math.cos(angle) * radius : 0;
+    const ty = needsFix ? Math.sin(angle) * radius : 0;
+
+    for (let i = 0; i < data.length; i++) {
+      const p = data[i];
+      if (p) {
+        context.moveTo(p[0], p[1]);
+        context.arc(p[0]+tx, p[1]+ty, radius, 0, Math.PI * 2, false);
+      }
+    }
+
+    this.paint(props, {
+      ...node,
+      fill
+    });
+    context.translate(-x, -y);
+  },
+
   path(props, node) {
     const { context } = props;
     const { points = [], stroke = true, closed = false } = node;

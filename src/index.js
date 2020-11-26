@@ -36,42 +36,45 @@ const sketch = (props) => {
 
   let reconciler;
 
-  // if (USE_GIF) {
-  //   const gif = new GIF({
-  //     // width: props.width,
-  //     // height: props.height,
-  //     workerScript: "vendor/gif.worker.js",
-  //     workers: 2,
-  //     debug: true,
-  //     background: "#000",
-  //     quality: 50,
-  //   });
+  if (USE_GIF) {
+    const gif = new GIF({
+      // width: props.width,
+      // height: props.height,
+      workerScript: "vendor/gif.worker.js",
+      workers: 2,
+      debug: true,
+      background: "#000",
+      quality: 50,
+    });
 
-  //   let fpsInterval = 1 / props.fps;
-  //   for (let i = 0; i < props.totalFrames; i++) {
-  //     draw({
-  //       ...props,
-  //       deltaTime: i === 0 ? 0 : fpsInterval,
-  //       playhead: i / props.totalFrames,
-  //       frame: i,
-  //       time: i * fpsInterval,
-  //     });
-  //     gif.addFrame(props.canvas, { copy: true, delay: 1 / fpsInterval });
-  //   }
-  //   gif.on("finished", function (blob) {
-  //     window.open(URL.createObjectURL(blob));
-  //   });
-  //   gif.render();
-  // }
+    let fpsInterval = 1 / props.fps;
+    begin(props)
+    for (let i = 0; i < props.totalFrames; i++) {
+      draw({
+        ...props,
+        deltaTime: i === 0 ? 0 : fpsInterval,
+        playhead: i / props.totalFrames,
+        frame: i,
+        time: i * fpsInterval,
+      });
+      gif.addFrame(props.canvas, { copy: true, delay: 1 / fpsInterval });
+    }
+    gif.on("finished", function (blob) {
+      window.open(URL.createObjectURL(blob));
+    });
+    gif.render();
+  }
 
   return {
-    begin() {
-      dispose();
-      reconciler = createTraverse(props);
-    },
+    begin,
     unload: dispose,
     render: draw,
   };
+
+  function begin (props) {
+    dispose();
+    reconciler = createTraverse(props);
+  }
 
   function dispose() {
     if (reconciler) reconciler.dispose();
@@ -200,6 +203,7 @@ function createCanvasRenderer(state) {
   map.set("rect", (state, props) => CanvasUtil.rect(state, props));
   map.set("background", (state, props) => CanvasUtil.background(state, props));
   map.set("point", (state, props) => CanvasUtil.point(state, props));
+  map.set("points", (state, props) => CanvasUtil.points(state, props));
   map.set("arc", (state, props) => CanvasUtil.arc(state, props));
   map.set("circle", (state, props) => CanvasUtil.arc(state, props));
   map.set("segment", (state, props) => CanvasUtil.segment(state, props));
@@ -270,12 +274,18 @@ function createTraverse(props) {
   const symbolConfig = Symbol.for("yyz.config");
   const symbolNode = Symbol.for("yyz.node");
   const buttons = {
+    clearState () {
+      window.localStorage.clear();
+      props.stop();
+      props.play();
+    },
     restart() {
       props.stop();
       props.play();
     },
   };
-  gui.add(buttons, "restart").name("Restart");
+  gui.add(buttons, "restart").name("Restart Loop");
+  gui.add(buttons, "clearState").name("Clear State");
 
   return {
     dispose() {
