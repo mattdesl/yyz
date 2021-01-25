@@ -3,9 +3,10 @@ import CanvasUtil from "./CanvasUtil";
 import livereload from "yyz/livereload";
 import createNode from "./yyz/node";
 import { random } from "yyz";
-import Sketch, * as config from "yyz/sketch";
+// import Sketch, * as config from "yyz/sketch";
 import { GUI } from "dat.gui";
 import * as Color from "canvas-sketch-util/color";
+import isClass from "is-class";
 
 const GeneratorFunction = function* () {}.constructor;
 
@@ -24,11 +25,13 @@ if (USE_GIF) {
   });
 }
 
-function get_config(key) {
-  return typeof config[key] === "undefined" ? undefined : config[key];
-}
+// function get_config(key) {
+//   return typeof config[key] === "undefined" ? undefined : config[key];
+// }
 
-const sketch = (props) => {
+const sketch = async (props) => {
+  const SketchModule = await import("yyz/sketch");
+
   const state = getProps(props);
   const renderer = createCanvasRenderer(state);
   let { main, clear } = props.data;
@@ -48,7 +51,7 @@ const sketch = (props) => {
     });
 
     let fpsInterval = 1 / props.fps;
-    begin(props)
+    begin(props);
     for (let i = 0; i < props.totalFrames; i++) {
       draw({
         ...props,
@@ -71,7 +74,7 @@ const sketch = (props) => {
     render: draw,
   };
 
-  function begin (props) {
+  function begin(props) {
     dispose();
     reconciler = createTraverse(props);
   }
@@ -86,7 +89,14 @@ const sketch = (props) => {
     random.setSeed(window.seed);
 
     let tree;
-    let curMain = get_config("main") || main;
+    let curMain = main;
+    if (isClass(curMain)) {
+      console.warn(
+        `Default or main export is a class - this is not yet supported.`
+      );
+      curMain = null;
+    }
+
     if (typeof curMain === "function") {
       tree = createNode(curMain, {});
     } else {
@@ -117,9 +127,26 @@ const sketch = (props) => {
 livereload();
 
 (async () => {
+  const SketchModule = await import("yyz/sketch");
+  const sketchSettings =
+    ("settings" in SketchModule ? SketchModule.settings : {}) || {};
+
+  let sketchMain;
+  if ("main" in SketchModule && typeof SketchModule.main === "function") {
+    sketchMain = SketchModule.main;
+  } else if (
+    "default" in SketchModule &&
+    typeof SketchModule.default === "function"
+  ) {
+    sketchMain = SketchModule.default;
+  } else {
+    sketchMain = null;
+    console.warn(`Sketch doesn't export a main() or default function.`);
+  }
+
   const settings = {
     ...defaultSettings,
-    ...(get_config("settings") || {}),
+    ...sketchSettings,
   };
 
   const clear = settings.clear !== false;
@@ -150,7 +177,7 @@ livereload();
       ...settings,
       ...newProps,
       data: {
-        main: Sketch,
+        main: sketchMain,
         restart,
         clear,
       },
@@ -209,6 +236,7 @@ function createCanvasRenderer(state) {
   map.set("segment", (state, props) => CanvasUtil.segment(state, props));
   map.set("arcpath", (state, props) => CanvasUtil.arcpath(state, props));
   map.set("path", (state, props) => CanvasUtil.path(state, props));
+  map.set("line", (state, props) => CanvasUtil.line(state, props));
   map.set("text", (state, props) => CanvasUtil.text(state, props));
 
   const resolveProps = (node) => {
@@ -270,11 +298,11 @@ function createCanvasRenderer(state) {
 function createTraverse(props) {
   const cache = new Map();
   const configMap = new Map();
-  const gui = new GUI();
+  // const gui = new GUI();
   const symbolConfig = Symbol.for("yyz.config");
   const symbolNode = Symbol.for("yyz.node");
   const buttons = {
-    clearState () {
+    clearState() {
       window.localStorage.clear();
       props.stop();
       props.play();
@@ -284,12 +312,13 @@ function createTraverse(props) {
       props.play();
     },
   };
-  gui.add(buttons, "restart").name("Restart Loop");
-  gui.add(buttons, "clearState").name("Clear State");
+
+  // if (props.settings.animate) gui.add(buttons, "restart").name("Restart Loop");
+  // const clearStateBtn = gui.add(buttons, "clearState").name("Clear State");
 
   return {
     dispose() {
-      gui.destroy();
+      // gui.destroy();
     },
     traverse(state, nodes, renderer) {
       return traverse(state, nodes, renderer, null);
@@ -347,7 +376,7 @@ function createTraverse(props) {
             if (configMap.has(node.key)) {
             } else {
               const target = {};
-              const folder = gui.addFolder(node.key);
+              // const folder = gui.addFolder(node.key);
               const fromStorageStr = window.localStorage.getItem(node.key);
               let fromStorage = {};
               if (fromStorageStr != null) {
@@ -373,27 +402,27 @@ function createTraverse(props) {
                   }
 
                   let ui;
-                  if (v.type === "color") ui = folder.addColor(target, k);
-                  else {
-                    ui = folder
-                      .add(target, k, v.min, v.max, v.step)
-                      .step(v.step);
-                  }
-                  ui.onChange(() => {
-                    window.localStorage.setItem(
-                      node.key,
-                      JSON.stringify(target)
-                    );
-                  });
+                  // if (v.type === "color") ui = folder.addColor(target, k);
+                  // else {
+                  //   ui = folder
+                  //     .add(target, k, v.min, v.max, v.step)
+                  //     .step(v.step);
+                  // }
+                  // ui.onChange(() => {
+                  //   window.localStorage.setItem(
+                  //     node.key,
+                  //     JSON.stringify(target)
+                  //   );
+                  // });
                 } else {
                   target[k] = v;
                 }
               }
-              folder.open();
+              // folder.open();
               Object.assign(newProps, target);
               configMap.set(node.key, {
                 target,
-                folder,
+                // folder,
                 type: node.type,
                 key: node.key,
               });

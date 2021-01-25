@@ -1,4 +1,6 @@
 const prettyMs = require("pretty-ms");
+const createPluginSvelte = require("./esbuild-plugin-svelte");
+const createPluginYYZ = require("./esbuild-plugin-yyz");
 const isDev = true;
 const injectPath = require.resolve
   ? require.resolve("../yyz/builtins.js")
@@ -7,7 +9,7 @@ const injectPath = require.resolve
 module.exports = async function createBundler(esbuild, serviceOpts = {}) {
   const service = await esbuild.startService(serviceOpts);
 
-  const plugin = createPlugin();
+  const pluginSvelte = createPluginSvelte({ dev: isDev });
   let curOptions = {};
   let instance;
   let useIncremental = true;
@@ -18,12 +20,12 @@ module.exports = async function createBundler(esbuild, serviceOpts = {}) {
       Object.assign(curOptions, opts);
     },
     async transform(code) {
-      const { src } = curOptions;
+      const { srcJS, srcCSS } = curOptions;
       const start = Date.now();
       const result = await service.transform(code, {
         define: {
           __YYZ_IS_DEV__: isDev,
-          __YYZ_SCRIPT_SRC__: JSON.stringify(src),
+          __YYZ_SCRIPT_SRC__: JSON.stringify(srcJS),
         },
         // inject: [injectPath],
         sourcemap: "inline",
@@ -38,9 +40,18 @@ module.exports = async function createBundler(esbuild, serviceOpts = {}) {
       return result;
     },
     async bundle() {
-      const { src, entry, outfile, outdir, write = true } = curOptions;
+      const {
+        srcJS,
+        srcCSS,
+        entry,
+        outfile,
+        outdir,
+        write = true,
+        sketch,
+      } = curOptions;
 
       const start = Date.now();
+      const pluginYYZ = createPluginYYZ({ sketch, dev: isDev });
       let result;
       if (instance) {
         result = instance.rebuild();
@@ -52,13 +63,12 @@ module.exports = async function createBundler(esbuild, serviceOpts = {}) {
           write,
           define: {
             __YYZ_IS_DEV__: isDev,
-            __YYZ_SCRIPT_SRC__: JSON.stringify(src),
+            __YYZ_SCRIPT_SRC__: JSON.stringify(srcJS),
           },
           outdir,
           incremental: useIncremental,
           inject: [require.resolve("../yyz/builtins.js")],
           sourcemap: false,
-          // globalName,
           jsxFactory: "__yyz_node",
           jsxFragment: "__yyz_fragment",
           format: "iife",
@@ -66,7 +76,7 @@ module.exports = async function createBundler(esbuild, serviceOpts = {}) {
             ".js": "jsx",
             ".ts": "tsx",
           },
-          plugins: [plugin],
+          plugins: [pluginYYZ, pluginSvelte],
         });
         if (useIncremental) instance = result;
       }
@@ -86,27 +96,4 @@ module.exports = async function createBundler(esbuild, serviceOpts = {}) {
       service.stop();
     },
   };
-
-  function createPlugin() {
-    return {
-      name: "yyz",
-      setup(build) {
-        build.onResolve({ filter: /^yyz$/ }, (args) => ({
-          path: require.resolve("../yyz/index.js"),
-        }));
-        build.onResolve({ filter: /^path$/ }, (args) => ({
-          path: require.resolve("path-browserify"),
-        }));
-        build.onResolve({ filter: /^yyz\/sketch$/ }, (args) => ({
-          path: curOptions.sketch,
-        }));
-
-        build.onResolve({ filter: /^yyz\/livereload$/ }, (args) => ({
-          path: isDev
-            ? require.resolve("../yyz/livereload/index.js")
-            : require.resolve("../yyz/livereload/empty.js"),
-        }));
-      },
-    };
-  }
 };

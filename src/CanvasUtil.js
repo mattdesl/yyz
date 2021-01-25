@@ -23,6 +23,11 @@ export default {
     } else {
       context.globalAlpha = 1;
     }
+    if (node.compositeOperation != null && node.compositeOperation) {
+      context.globalCompositeOperation = node.compositeOperation;
+    } else {
+      context.globalCompositeOperation = "source-over";
+    }
     if (hasFill) {
       context.fillStyle = typeof fill === "string" && fill ? fill : "black";
       context.fill();
@@ -159,7 +164,17 @@ export default {
     this.arc(props, { ...node, fill, stroke: false, x, y, radius });
   },
 
-  points (props, node) {
+  line(props, node) {
+    const { context } = props;
+    const { x1 = 0, y1 = 0, x2 = 0, y2 = 0, stroke = true } = node;
+    if (stroke === false && node.fill === false) return;
+    context.beginPath();
+    context.moveTo(x1, y1);
+    context.lineTo(x2, y2);
+    this.paint(props, { fill: false, stroke: true, ...node });
+  },
+
+  points(props, node) {
     const { context, width, height } = props;
     const { data = [], x = 0, y = 0, fill = true } = node;
     if (data.length === 0) return;
@@ -172,7 +187,6 @@ export default {
     if (radius === 0) return;
     context.translate(x, y);
     context.beginPath();
-    
 
     const angle = Math.PI;
     const needsFix = true; // could turn this off for fill-only ?
@@ -183,13 +197,13 @@ export default {
       const p = data[i];
       if (p) {
         context.moveTo(p[0], p[1]);
-        context.arc(p[0]+tx, p[1]+ty, radius, 0, Math.PI * 2, false);
+        context.arc(p[0] + tx, p[1] + ty, radius, 0, Math.PI * 2, false);
       }
     }
 
     this.paint(props, {
       ...node,
-      fill
+      fill,
     });
     context.translate(-x, -y);
   },

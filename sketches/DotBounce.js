@@ -87,7 +87,6 @@ export default function DotBounce(props, { width, height }) {
   };
 }
 
-// UI (exact API is still TBD)
 DotBounce.config = {
   foreground: config.color("#ededed"),
   background: config.color("#020202"),

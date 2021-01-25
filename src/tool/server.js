@@ -19,7 +19,8 @@ const DEFAULT_PORT = 9966;
 
 module.exports = async function createServer(opts = {}) {
   const dir = opts.dir || process.cwd();
-  const src = opts.src || "bundle.js";
+  const srcJS = opts.srcJS || "bundle.js";
+  const srcCSS = opts.srcCSS || "bundle.css";
   const bundlerMiddleware = opts.middleware;
   const app = middleware();
 
@@ -69,7 +70,8 @@ module.exports = async function createServer(opts = {}) {
     const defaultHTML = await readFile(templateFile, "utf8");
     const html = maxstache(defaultHTML, {
       title: "yyz",
-      entry: `<script src="${src}" type="module"></script>`,
+      css: `<link rel="stylesheet" href="${srcCSS}">`,
+      entry: `<script src="${srcJS}" type="module"></script>`,
     });
     res.set("Content-Type", "text/html");
     res.status(200);
