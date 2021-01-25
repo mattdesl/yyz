@@ -1,10 +1,14 @@
 import * as MathUtil from "canvas-sketch-util/math";
 import * as Random from "canvas-sketch-util/random";
+import * as Color from "canvas-sketch-util/color";
+import * as Geometry from "canvas-sketch-util/geometry";
 import * as Config from "./config";
 
 export const math = MathUtil;
 export const random = Random;
+export const color = Color;
 export const config = Config;
+export const geometry = Geometry;
 
 math.map = math.mapRange;
 math.range = range;

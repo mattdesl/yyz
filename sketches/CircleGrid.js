@@ -1,72 +1,65 @@
-import { math, random } from "yyz";
+import { math, color as Color, random } from "yyz";
 import Normalize from "./Normalize";
 import Grid from "./Grid";
-import palettes from "nice-color-palettes";
+import palettes from "nice-color-palettes/500.json";
 
 export default (props, { width, height }) => {
-  const gridDivisions = 10;
+  const gridDivisions = 4;
   const gridSize = 1;
   const lineWidth = 0.005;
   const gridColor = "hsl(0, 0%, 75%)";
   const foreground = "hsl(0, 0%, 25%)";
   const background = "hsl(0, 0%, 95%)";
-  const colors = random.pick(palettes);
+  const nColors = random.rangeFloor(3, 6);
+  const colors = random.shuffle(random.pick(palettes)).slice(0, nColors);
 
   // Create some data points on the grid
-  const data = createRandomGridData(10, {
+  const N = random.rangeFloor(10, 20);
+  const data = createRandomGridData(N, {
     colors,
     gridSize,
     gridDivisions,
+    // Can play with this a bit...
+    origin: [0.0, 0.0],
+    upperBound: gridDivisions + 1,
   });
-
-  // Now find a set of connections between circles of matching colors
-  // We use a set and string keys to avoid duplicate edges (A->B, B->A)
-  const connections = new Set();
-  for (let i = 0; i < data.length; i++) {
-    for (let c = 0; c < data.length; c++) {
-      if (i === c) continue;
-      const a = data[i];
-      const b = data[c];
-      if (a.color === b.color) {
-        // Sorted string key (A->B)
-        const key = [i, c].sort((a, b) => a - b).join(":");
-        connections.add(key);
-      }
-    }
-  }
 
   // Turn the data points into shapes
   const circles = data.map(({ x, y, radius, color }) => {
     return (
       <circle
         compositeOperation="multiply"
-        alpha={1}
+        alpha={0.85}
         x={x}
         y={y}
         fill={color}
-        radius={radius}
+        radius={radius * 0.5}
       />
     );
   });
 
-  // Turn the connections into lines
-  const lines = [...connections].map((key) => {
-    const [ia, ib] = key.split(":").map((n) => parseInt(n, 10));
-    const a = data[ia];
-    const b = data[ib];
+  // Create connections from the points
+  // Could be e.g. delaunay, minimum spanning tree, etc...
+  const connections = createConnections(data);
+
+  // Now form lines from those connections
+  const lines = connections.map(([a, b]) => {
     return (
       <line
         compositeOperation="multiply"
+        alpha={0.85}
         x1={a.x}
         y1={a.y}
         x2={b.x}
         y2={b.y}
-        stroke={a.color}
-        lineWidth={lineWidth}
+        stroke={Color.blend(a.color, b.color, 0.5).hex}
+        lineJoin="round"
+        lineWidth={lineWidth * 2}
       />
     );
   });
 
+  // Draw full graph
   return (
     <background fill={background}>
       <Normalize>
@@ -76,24 +69,31 @@ export default (props, { width, height }) => {
           rows={gridDivisions}
           columns={gridDivisions}
           lineWidth={lineWidth}
+          lineJoin="round"
           stroke={gridColor}
         />
-        {circles}
         {lines}
+        {circles}
       </Normalize>
     </background>
   );
 };
 
-function createRandomGridData(N, { colors, gridSize, gridDivisions }) {
-  // transform origin of circle within cell
-  const origin = [0, 0];
-
-  // If you use a different origin you might want to change the
-  // bounds at which circles can be placed
-  const lowerBound = 0;
-  const upperBound = gridDivisions + 1;
-
+// Function that produces random cells on a grid
+function createRandomGridData(
+  N,
+  {
+    colors,
+    gridSize,
+    gridDivisions,
+    // transform origin of circle within cell
+    origin = [0.5, 0.5],
+    // If you use a different origin you might want to change the
+    // bounds at which circles can be placed
+    lowerBound = 0,
+    upperBound = gridDivisions,
+  }
+) {
   // Get a list of random grid points
   const gridPoints = math.range(N).map(() => {
     const column = random.rangeFloor(lowerBound, upperBound);
@@ -104,7 +104,7 @@ function createRandomGridData(N, { colors, gridSize, gridDivisions }) {
   // Remove any duplicate points
   const uniquePoints = [
     ...new Set(gridPoints.map((g) => g.join(":"))),
-  ].map((str) => str.split(":"));
+  ].map((str) => str.split(":").map((n) => parseInt(n, 10)));
 
   // Convert to a data structure that has color, radius, position ...
   return uniquePoints.map(([column, row]) => {
@@ -127,4 +127,38 @@ function createRandomGridData(N, { colors, gridSize, gridDivisions }) {
 
     return { row, column, radius, color, x, y };
   });
+}
+
+// Function that turns data points into some connected graph
+function createConnections(data) {
+  // This is a pretty simple algorithm, it connects
+  // grid neighbours that are within 1 cell distance,
+  // or lie on the same row or column as each other
+  const set = new Set();
+  for (let i = 0; i < data.length; i++) {
+    for (let j = 0; j < data.length; j++) {
+      if (i === j) continue;
+      const a = data[i];
+      const b = data[j];
+
+      const collinear = a.row === b.row || a.column === b.column;
+      const neighbour =
+        Math.abs(a.row - b.row) <= 1 && Math.abs(a.column - b.column) <= 1;
+
+      if (neighbour || collinear) {
+        const key = [i, j].sort((a, b) => a - b).join(":");
+        set.add(key);
+      }
+    }
+  }
+
+  // Return actual objects, not indices
+  return [...set].map((n) => {
+    return n
+      .split(":")
+      .map((n) => parseInt(n, 10))
+      .map((i) => data[i]);
+  });
+
+  return connections;
 }
