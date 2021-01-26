@@ -54,7 +54,8 @@ export default (props, { width, height }) => {
         y2={b.y}
         stroke={Color.blend(a.color, b.color, 0.5).hex}
         lineJoin="round"
-        lineWidth={lineWidth * 2}
+        lineCap="round"
+        lineWidth={lineWidth}
       />
     );
   });
