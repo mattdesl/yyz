@@ -1,5 +1,6 @@
 import canvasSketch from "canvas-sketch";
 import CanvasUtil from "./CanvasUtil";
+import createCanvas3DRenderer from "./createCanvas3DRenderer";
 import livereload from "yyz/livereload";
 import createNode from "./yyz/node";
 import { random } from "yyz";
@@ -11,16 +12,16 @@ import isClass from "is-class";
 const GeneratorFunction = function* () {}.constructor;
 
 // Will have to work on this a bit more...
-const USE_GIF = false;
+const USE_GIF = true;
 
 const defaultSettings = {
-  dimensions: [1024, 1024],
+  dimensions: [1080, 1080],
   scaleToView: false,
 };
 
 if (USE_GIF) {
   Object.assign(defaultSettings, {
-    fps: 25,
+    fps: 30,
     playbackRate: "throttle",
   });
 }
@@ -32,8 +33,19 @@ if (USE_GIF) {
 const sketch = async (props) => {
   const SketchModule = await import("yyz/sketch");
 
+  let isWebGL = false;
+  if (
+    /webgl/i.test(props.context) ||
+    props.context instanceof WebGLRenderingContext ||
+    props.context instanceof WebGL2RenderingContext
+  ) {
+    isWebGL = true;
+  }
+
   const state = getProps(props);
-  const renderer = createCanvasRenderer(state);
+  const renderer = isWebGL
+    ? createCanvas3DRenderer(state)
+    : createCanvasRenderer(state);
   let { main, clear } = props.data;
   let didError = false;
 
@@ -51,6 +63,8 @@ const sketch = async (props) => {
     });
 
     let fpsInterval = 1 / props.fps;
+    console.log("PROPS", props.fps);
+    const duration = props.totalFrames / props.fps;
     begin(props);
     for (let i = 0; i < props.totalFrames; i++) {
       draw({
@@ -60,7 +74,7 @@ const sketch = async (props) => {
         frame: i,
         time: i * fpsInterval,
       });
-      gif.addFrame(props.canvas, { copy: true, delay: 1 / fpsInterval });
+      gif.addFrame(props.canvas, { copy: true, delay: fpsInterval * 1000 });
     }
     gif.on("finished", function (blob) {
       window.open(URL.createObjectURL(blob));
@@ -70,13 +84,18 @@ const sketch = async (props) => {
 
   return {
     begin,
-    unload: dispose,
+    unload: destroy,
     render: draw,
   };
 
   function begin(props) {
     dispose();
     reconciler = createTraverse(props);
+  }
+
+  function destroy() {
+    dispose();
+    renderer.dispose();
   }
 
   function dispose() {
@@ -251,6 +270,7 @@ function createCanvasRenderer(state) {
   };
 
   return {
+    dispose() {},
     clear(state) {
       CanvasUtil.background(state, { fill: "white", clear: true });
     },
@@ -472,36 +492,3 @@ function createTraverse(props) {
     });
   }
 }
-
-// function Line({ position = [0, 0], length = 1, angle = 0 } = {}) {
-//   return ({ context }) => {
-//     const len = length / 2;
-//     const u = Math.cos(angle) * len;
-//     const v = Math.sin(angle) * len;
-//     context.beginPath();
-//     context.moveTo(position[0] - u, position[1] - v);
-//     context.lineTo(position[0] + u, position[1] + v);
-//     context.stroke();
-//   };
-// }
-
-// function Circle({ position = [0, 0], radius = 1 } = {}) {
-//   return ({ context }) => {
-//     context.beginPath();
-//     context.arc(position[0], position[1], radius, 0, Math.PI * 2, false);
-//     context.stroke();
-//   };
-// }
-
-// function Path(path, { closed = false } = {}) {
-//   return ({ context }) => {
-//     context.beginPath();
-//     for (let i = 0; i < path.length; i++) {
-//       const p = path[i];
-//       if (i === 0) context.moveTo(p[0], p[1]);
-//       else context.lineTo(p[0], p[1]);
-//     }
-//     if (closed) context.closePath();
-//     context.stroke();
-//   };
-// }

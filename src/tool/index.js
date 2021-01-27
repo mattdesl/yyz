@@ -139,7 +139,12 @@ async function start(opts) {
   });
 
   // TODO: will need to pick up additional deps like glsl, svelte, json, etc.
-  const watcher = createWatcher([sketch, path.join(path.dirname(sketch), "*")]);
+  const cwd = process.cwd();
+  const watcher = createWatcher([
+    sketch,
+    path.join(path.dirname(sketch), "*"),
+    path.join(path.dirname(cwd, "*.{js,ts,tsx,jsx}")),
+  ]);
 
   watcher.on("change", (file) => {
     if (path.resolve(file) === outfile) {
