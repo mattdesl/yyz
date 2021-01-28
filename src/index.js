@@ -12,7 +12,7 @@ import isClass from "is-class";
 const GeneratorFunction = function* () {}.constructor;
 
 // Will have to work on this a bit more...
-const USE_GIF = true;
+const USE_GIF = window.location.search.includes("gif");
 
 const defaultSettings = {
   dimensions: [1080, 1080],
