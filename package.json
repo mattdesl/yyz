@@ -19,6 +19,7 @@
     "chokidar": "^3.4.3",
     "dat.gui": "^0.7.7",
     "defined": "^1.0.0",
+    "eases": "^1.0.8",
     "esbuild": "^0.8.17",
     "esbuild-wasm": "^0.8.12",
     "express": "^4.17.1",
